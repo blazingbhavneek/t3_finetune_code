@@ -1,4 +1,4 @@
-from models.t3 import T3ForFineTuning
+from dataset import T3ForFineTuning
 from dataset import SpeechFineTuningDataset, DataArguments, SpeechDataCollator, DetailedLoggingCallback
 import datasets
 from datasets import concatenate_datasets

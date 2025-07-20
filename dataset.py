@@ -465,7 +465,6 @@ class SpeechDataCollator:
         return batch_result
     
 
-# --- Model Wrapper ---
 class T3ForFineTuning(torch.nn.Module):
     def __init__(self, t3_model: T3, chatterbox_t3_config: T3Config):
         super().__init__()
