@@ -19,7 +19,6 @@ from tts import ChatterboxTTS, punc_norm
 from models.t3.modules.t3_config import T3Config
 from models.s3tokenizer import S3_SR
 
-from dataset import SpeechFineTuningDataset, DataArguments, SpeechDataCollator
 from tts import ChatterboxTTS 
 
 from models.t3 import T3, T3Cond
