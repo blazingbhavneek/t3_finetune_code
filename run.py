@@ -688,3 +688,6 @@ def run():
     
     # run_cleaner(model_args=model_args, data_args=data_args)
     run_training(model_args, data_args, training_args, is_local=True)
+
+if __name__ == "__main__":
+    run()
