@@ -21,7 +21,7 @@ from models.s3tokenizer import S3_SR
 
 from tts import ChatterboxTTS 
 
-from models.t3 import T3, T3Cond
+from models.t3.t3 import T3, T3Cond
 
 import os
 import shutil
