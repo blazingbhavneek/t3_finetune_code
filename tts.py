@@ -11,13 +11,13 @@ from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .models.t3 import T3
-from .models.s3tokenizer import S3_SR, drop_invalid_tokens
-from .models.s3gen import S3GEN_SR, S3Gen
-from .models.tokenizers import EnTokenizer
-from .models.voice_encoder import VoiceEncoder
-from .models.t3.modules.cond_enc import T3Cond
-from .models.t3.modules.t3_config import T3Config
+from models.t3 import T3
+from models.s3tokenizer import S3_SR, drop_invalid_tokens
+from models.s3gen import S3GEN_SR, S3Gen
+from models.tokenizers import EnTokenizer
+from models.voice_encoder import VoiceEncoder
+from models.t3.modules.cond_enc import T3Cond
+from models.t3.modules.t3_config import T3Config
 
 
 REPO_ID = "ResembleAI/chatterbox"
