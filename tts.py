@@ -37,7 +37,8 @@ def smart_load_t3_model(t3_state_dict, device="cpu"):
     try:
         t3.load_state_dict(t3_state_dict)
         logger.info(f"Successfully loaded T3 model with default config (text_tokens_dict_size={config.text_tokens_dict_size})")
-        return t3.to(device).eval()
+        # return t3.to(device).eval()
+        return t3.eval()
     except RuntimeError as e:
         error_msg = str(e)
         logger.warning(f"Initial loading failed with default config: {error_msg}")
@@ -63,7 +64,8 @@ def smart_load_t3_model(t3_state_dict, device="cpu"):
                 try:
                     t3_corrected.load_state_dict(t3_state_dict)
                     logger.info(f"Successfully loaded T3 model with corrected config (text_tokens_dict_size={correct_text_tokens_dict_size})")
-                    return t3_corrected.to(device).eval()
+                    # return t3_corrected.to(device).eval()
+                    return t3_corrected.eval()
                 except RuntimeError as retry_error:
                     logger.error(f"Failed to load even with corrected config: {retry_error}")
                     raise retry_error
