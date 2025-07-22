@@ -51,23 +51,43 @@ class T3(nn.Module):
         self.tfmr = LlamaModel(self.cfg)
         self.dim = self.cfg.hidden_size
         self.deepspeed_patch_applied = False
+        
+        # Determine if we should split across GPUs
+        self.split_model = torch.cuda.device_count() >= 2
+        self.device0 = torch.device('cuda:0')
+        self.device1 = torch.device('cuda:1') if self.split_model else self.device0
 
-        # conditioning / embedding
-        self.cond_enc = T3CondEnc(hp)
-        self.text_emb = nn.Embedding(hp.text_tokens_dict_size, self.dim)
-        self.speech_emb = nn.Embedding(hp.speech_tokens_dict_size, self.dim)
+        # Extract layers and split them across devices
+        self.layers = self.tfmr.model.layers
+        self.num_layers = len(self.layers)
+        self.split_index = self.num_layers // 2
+        
+        # Move layers to appropriate devices
+        for i in range(self.split_index):
+            self.layers[i] = self.layers[i].to(self.device0)
+        for i in range(self.split_index, self.num_layers):
+            self.layers[i] = self.layers[i].to(self.device1)
+        
+        # Move other components to device0
+        self.norm = self.tfmr.model.norm.to(self.device0)
+        self.tfmr.model.embed_tokens = self.tfmr.model.embed_tokens.to(self.device0)
+
+        # conditioning/embedding components
+        self.cond_enc = T3CondEnc(hp).to(self.device0)
+        self.text_emb = nn.Embedding(hp.text_tokens_dict_size, self.dim).to(self.device0)
+        self.speech_emb = nn.Embedding(hp.speech_tokens_dict_size, self.dim).to(self.device0)
 
         # custom position embedding
         if hp.input_pos_emb == "learned":
             max_text_seq_len = hp.max_text_tokens + 2
-            self.text_pos_emb = LearnedPositionEmbeddings(max_text_seq_len, self.dim)
+            self.text_pos_emb = LearnedPositionEmbeddings(max_text_seq_len, self.dim).to(self.device0)
 
             max_mel_seq_len = hp.max_speech_tokens + 2 + 2
-            self.speech_pos_emb = LearnedPositionEmbeddings(max_mel_seq_len, self.dim)
+            self.speech_pos_emb = LearnedPositionEmbeddings(max_mel_seq_len, self.dim).to(self.device0)
 
         # logit projection
-        self.text_head = nn.Linear(self.cfg.hidden_size, hp.text_tokens_dict_size, bias=False)
-        self.speech_head = nn.Linear(self.cfg.hidden_size, hp.speech_tokens_dict_size, bias=False)
+        self.text_head = nn.Linear(self.cfg.hidden_size, hp.text_tokens_dict_size, bias=False).to(self.device0)
+        self.speech_head = nn.Linear(self.cfg.hidden_size, hp.speech_tokens_dict_size, bias=False).to(self.device0)
         self.compiled = False
 
     @property
@@ -125,25 +145,66 @@ class T3(nn.Module):
     ):
         _ensure_BOT_EOT(text_tokens, self.hp)
 
-        # prepare custom input embeds
+        # Prepare custom input embeds (all on device0)
         embeds, len_cond = self.prepare_input_embeds(
             t3_cond=t3_cond,
             text_tokens=text_tokens,
             speech_tokens=speech_tokens,
+        ).to(self.device0)
+
+        # Prepare transformer inputs
+        batch_size, seq_length, _ = embeds.shape
+        attention_mask = torch.ones(
+            (batch_size, seq_length), dtype=torch.bool, device=self.device0
+        )
+        position_ids = torch.arange(seq_length, dtype=torch.long, device=self.device0)
+        position_ids = position_ids.unsqueeze(0).expand(batch_size, -1)
+
+        # Prepare 4D attention mask
+        from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
+        attention_mask_4d = _prepare_4d_causal_attention_mask(
+            attention_mask, (batch_size, seq_length), embeds, 0
         )
 
-        # backbone tranformer forward
-        tfmr_out = self.tfmr.forward(
-            input_ids=None,
-            # position_ids=position_ids, # TODO? ROPE should be fine?
-            inputs_embeds=embeds,
-            output_hidden_states=True,
-            return_dict=True,
-            use_cache=(not training),
-        )
-        hidden_states = tfmr_out.hidden_states[-1]  # final tfmr layer output, (B, seq, dim)
+        # Forward pass through transformer layers
+        hidden_states = embeds
+        
+        # First half of layers on device0
+        for i in range(self.split_index):
+            layer = self.layers[i]
+            layer_outputs = layer(
+                hidden_states,
+                attention_mask=attention_mask_4d,
+                position_ids=position_ids,
+                use_cache=(not training),
+                output_attentions=False,
+            )
+            hidden_states = layer_outputs[0]
 
-        # post-processing: splice out text and speech parts of hidden states
+        # Move to device1 if splitting
+        if self.split_model:
+            hidden_states = hidden_states.to(self.device1)
+            attention_mask_4d = attention_mask_4d.to(self.device1) if attention_mask_4d is not None else None
+            position_ids = position_ids.to(self.device1)
+
+        # Second half of layers on device1
+        for i in range(self.split_index, self.num_layers):
+            layer = self.layers[i]
+            layer_outputs = layer(
+                hidden_states,
+                attention_mask=attention_mask_4d,
+                position_ids=position_ids,
+                use_cache=(not training),
+                output_attentions=False,
+            )
+            hidden_states = layer_outputs[0]
+
+        # Move back to device0 for norm and heads
+        if self.split_model:
+            hidden_states = hidden_states.to(self.device0)
+        hidden_states = self.norm(hidden_states)
+
+        # Rest of the forward pass remains the same (on device0)
         len_text = text_tokens.size(1)
         len_speech = speech_tokens.size(1)
         B, _, dim = hidden_states.shape
@@ -158,7 +219,7 @@ class T3(nn.Module):
             text_latents[i, :ttl[i]] = hidden_states[i, len_cond:text_end]
             speech_latents[i, :stl[i]] = hidden_states[i, speech_start:speech_end]
 
-        # logit projection
+        # Logit projections (on device0)
         text_logits = self.text_head(text_latents)
         speech_logits = self.speech_head(speech_latents)
 
