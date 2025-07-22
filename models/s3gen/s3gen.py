@@ -41,7 +41,7 @@ def drop_invalid_tokens(x):
 # TODO: global resampler cache
 @lru_cache(100)
 def get_resampler(src_sr, dst_sr, device):
-    return ta.transforms.Resample(src_sr, dst_sr).to(device)
+    return ta.transforms.Resample(src_sr, dst_sr)
 
 
 class S3Token2Mel(torch.nn.Module):
@@ -123,7 +123,7 @@ class S3Token2Mel(torch.nn.Module):
             ref_wav = torch.from_numpy(ref_wav).float()
 
         if ref_wav.device != device:
-            ref_wav = ref_wav.to(device)
+            ref_wav = ref_wav
 
         if len(ref_wav.shape) == 1:
             ref_wav = ref_wav.unsqueeze(0)  # (B, L)
@@ -135,11 +135,11 @@ class S3Token2Mel(torch.nn.Module):
         if ref_sr != S3GEN_SR:
             ref_wav_24 = get_resampler(ref_sr, S3GEN_SR, device)(ref_wav)
 
-        ref_mels_24 = self.mel_extractor(ref_wav_24).transpose(1, 2).to(device)
+        ref_mels_24 = self.mel_extractor(ref_wav_24).transpose(1, 2)
         ref_mels_24_len = None
 
         # Resample to 16kHz
-        ref_wav_16 = get_resampler(ref_sr, S3_SR, device)(ref_wav).to(device)
+        ref_wav_16 = get_resampler(ref_sr, S3_SR, device)(ref_wav)
 
         # Speaker embedding
         ref_x_vector = self.speaker_encoder.inference(ref_wav_16)
@@ -156,7 +156,7 @@ class S3Token2Mel(torch.nn.Module):
             ref_speech_token_lens[0] = ref_speech_tokens.shape[1]
 
         return dict(
-            prompt_token=ref_speech_tokens.to(device),
+            prompt_token=ref_speech_tokens,
             prompt_token_len=ref_speech_token_lens,
             prompt_feat=ref_mels_24,
             prompt_feat_len=ref_mels_24_len,

@@ -448,7 +448,7 @@ class HiFTGenerator(nn.Module):
             batch: dict,
             device: torch.device,
     ) -> Dict[str, Optional[torch.Tensor]]:
-        speech_feat = batch['speech_feat'].transpose(1, 2).to(device)
+        speech_feat = batch['speech_feat'].transpose(1, 2)
         # mel->f0
         f0 = self.f0_predictor(speech_feat)
         # f0->source

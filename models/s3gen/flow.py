@@ -62,18 +62,18 @@ class MaskedDiffWithXvec(torch.nn.Module):
             batch: dict,
             device: torch.device,
     ) -> Dict[str, Optional[torch.Tensor]]:
-        token = batch['speech_token'].to(device)
-        token_len = batch['speech_token_len'].to(device)
-        feat = batch['speech_feat'].to(device)
-        feat_len = batch['speech_feat_len'].to(device)
-        embedding = batch['embedding'].to(device)
+        token = batch['speech_token']
+        token_len = batch['speech_token_len']
+        feat = batch['speech_feat']
+        feat_len = batch['speech_feat_len']
+        embedding = batch['embedding']
 
         # xvec projection
         embedding = F.normalize(embedding, dim=1)
         embedding = self.spk_embed_affine_layer(embedding)
 
         # concat text and prompt_text
-        mask = (~make_pad_mask(token_len)).float().unsqueeze(-1).to(device)
+        mask = (~make_pad_mask(token_len)).float().unsqueeze(-1)
         token = self.input_embedding(torch.clamp(token, min=0)) * mask
 
         # text encode

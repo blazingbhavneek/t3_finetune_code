@@ -31,7 +31,7 @@ class ChatterboxVC:
             self.ref_dict = None
         else:
             self.ref_dict = {
-                k: v.to(device) if torch.is_tensor(v) else v
+                k: v if torch.is_tensor(v) else v
                 for k, v in ref_dict.items()
             }
 
@@ -54,7 +54,7 @@ class ChatterboxVC:
         s3gen.load_state_dict(
             torch.load(ckpt_dir / "s3gen.pt", map_location=map_location)
         )
-        s3gen.to(device).eval()
+        s3gen.eval()
 
         return cls(s3gen, device, ref_dict=ref_dict)
 
@@ -79,7 +79,7 @@ class ChatterboxVC:
         s3gen.load_state_dict(
             load_file(s3gen_path), strict=False
         )
-        s3gen.to(device).eval()
+        s3gen.eval()
         
         ref_dict = torch.load(conds_path, map_location=device)
         

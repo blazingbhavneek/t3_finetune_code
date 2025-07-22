@@ -37,7 +37,7 @@ def smart_load_t3_model(t3_state_dict, device="cpu"):
     try:
         t3.load_state_dict(t3_state_dict)
         logger.info(f"Successfully loaded T3 model with default config (text_tokens_dict_size={config.text_tokens_dict_size})")
-        # return t3.to(device).eval()
+        # return t3.eval()
         return t3.eval()
     except RuntimeError as e:
         error_msg = str(e)
@@ -64,7 +64,7 @@ def smart_load_t3_model(t3_state_dict, device="cpu"):
                 try:
                     t3_corrected.load_state_dict(t3_state_dict)
                     logger.info(f"Successfully loaded T3 model with corrected config (text_tokens_dict_size={correct_text_tokens_dict_size})")
-                    # return t3_corrected.to(device).eval()
+                    # return t3_corrected.eval()
                     return t3_corrected.eval()
                 except RuntimeError as retry_error:
                     logger.error(f"Failed to load even with corrected config: {retry_error}")
@@ -345,7 +345,7 @@ class ChatterboxTTS:
         ve.load_state_dict(
             load_file(ckpt_dir / "ve.safetensors")
         )
-        ve.to(device).eval()
+        ve.eval()
 
         # Load T3 model with smart loading
         t3_state = load_file(ckpt_dir / "t3_cfg.safetensors")
@@ -360,7 +360,7 @@ class ChatterboxTTS:
         s3gen.load_state_dict(
             load_file(ckpt_dir / "s3gen.safetensors"), strict=False
         )
-        s3gen.to(device).eval()
+        s3gen.eval()
 
         tokenizer = EnTokenizer(
             str(ckpt_dir / "tokenizer.json")
@@ -368,7 +368,7 @@ class ChatterboxTTS:
 
         conds = None
         if (builtin_voice := ckpt_dir / "conds.pt").exists():
-            conds = Conditionals.load(builtin_voice, map_location=map_location).to(device)
+            conds = Conditionals.load(builtin_voice, map_location=map_location)
 
         return cls(t3, s3gen, ve, tokenizer, device, conds=conds)
 
