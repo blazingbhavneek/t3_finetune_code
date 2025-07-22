@@ -679,7 +679,6 @@ def run():
         dataloader_persistent_workers=False,
         dataloader_prefetch_factor=2,
         fsdp="full_shard",
-        fsdp_offload_params=True
     )
     
     # Use preprocessing_num_workers as dataloader_num_workers if set
