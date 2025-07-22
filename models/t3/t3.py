@@ -69,8 +69,8 @@ class T3(nn.Module):
             self.layers[i] = self.layers[i].to(self.device1)
         
         # Move other components to device0
-        self.norm = self.tfmr.model.norm.to(self.device0)
-        self.tfmr.model.embed_tokens = self.tfmr.model.embed_tokens.to(self.device0)
+        self.norm = self.tfmr.norm.to(self.device0)
+        self.tfmr.embed_tokens = self.tfmr.embed_tokens.to(self.device0)
 
         # conditioning/embedding components
         self.cond_enc = T3CondEnc(hp).to(self.device0)
