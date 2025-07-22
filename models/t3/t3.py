@@ -58,7 +58,7 @@ class T3(nn.Module):
         self.device1 = torch.device('cuda:1') if self.split_model else self.device0
 
         # Extract layers and split them across devices
-        self.layers = self.tfmr.model.layers
+        self.layers = self.tfmr.layers
         self.num_layers = len(self.layers)
         self.split_index = self.num_layers // 2
         
