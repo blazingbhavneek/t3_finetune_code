@@ -677,8 +677,8 @@ def run():
         eval_on_start=False,
         use_torch_profiler=False,
         dataloader_persistent_workers=False,
-        dataloader_prefetch_factor=2
-        # label_names will be set in the trainer setup
+        dataloader_prefetch_factor=2,
+        fsdp="full_shard",
     )
     
     # Use preprocessing_num_workers as dataloader_num_workers if set
