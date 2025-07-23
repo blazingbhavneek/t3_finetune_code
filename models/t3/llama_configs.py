@@ -8,7 +8,7 @@ LLAMA_520M_CONFIG_DICT = dict(
     intermediate_size=4096,
     num_hidden_layers=30,
     num_attention_heads=16,
-    attn_implementation="eager", #sdpa
+    attn_implementation="eager",  # sdpa
     head_dim=64,
     tie_word_embeddings=False,
     hidden_act="silu",
@@ -25,7 +25,7 @@ LLAMA_520M_CONFIG_DICT = dict(
         high_freq_factor=4.0,
         low_freq_factor=1.0,
         original_max_position_embeddings=8192,
-        rope_type="llama3"
+        rope_type="llama3",
     ),
     rope_theta=500000.0,
     torch_dtype="bfloat16",

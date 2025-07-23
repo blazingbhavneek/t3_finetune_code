@@ -1,7 +1,47 @@
-import os
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
+
+
+@dataclass
+class ModelArguments:
+    model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Path to pretrained model or model identifier from huggingface.co/models"
+        },
+    )
+    model_config: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Path to a json file specifying local paths to models to load."
+        },
+    )
+    local_model_dir: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Path to local directory containing ve.safetensors, t3_cfg.safetensors, etc. Overrides model_name_or_path for loading."
+        },
+    )
+
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Where do you want to store the pretrained models downloaded from huggingface.co"
+        },
+    )
+    freeze_voice_encoder: bool = field(
+        default=True, metadata={"help": "Freeze the Voice Encoder."}
+    )
+    freeze_s3gen: bool = field(
+        default=True,
+        metadata={"help": "Freeze the S3Gen model (speech token to waveform)."},
+    )
+    freeze_text_embeddings: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": "Number of original text embedding tokens to freeze (e.g., 704 for original vocab size)."
+        },
+    )
 
 
 @dataclass
@@ -10,6 +50,12 @@ class DataArguments:
         default=None,
         metadata={
             "help": "Path to the directory containing audio files and text files. Used if dataset_name is not provided."
+        },
+    )
+    dataset_dirs: List[str] = field(
+        default_factory=list,
+        metadata={
+            "help": "List of paths to multiple dataset directories (e.g., for multi-language training). Each directory should contain JSON and audio files."
         },
     )
     metadata_file: Optional[str] = field(
@@ -30,8 +76,13 @@ class DataArguments:
             "help": "The configuration name of the dataset to use (via the Hugging Face datasets library)."
         },
     )
-    train_split_name: str = field(
+    train_split_name: Optional[str] = field(
         default="train", metadata={"help": "The name of the training data set split."}
+    )
+
+    train_splits: List[str] = field(
+        default_factory=list,
+        metadata={"help": "List of language splits to use (e.g., ['de', 'fr'])."},
     )
     eval_split_name: Optional[str] = field(
         default="validation",
@@ -78,11 +129,29 @@ class DataArguments:
     lang_path: Optional[str] = field(
         default=None, metadata={"help": "The path to the language split to use."}
     )
-    lang_splits: Optional[List[str]] = field(
-        default=None,
+    lang_splits: List[str] = field(
+        default_factory=list,
         metadata={"help": "List of language splits to use (e.g., ['de', 'fr'])."},
     )
-    lang_paths: Optional[List[str]] = field(
-        default=None,
+    lang_paths: List[str] = field(
+        default_factory=list,
         metadata={"help": "List of paths corresponding to each language split."},
+    )
+    use_webdataset: bool = field(
+        default=False,
+        metadata={
+            "help": "Use webdataset format for optimized streaming and loading of large datasets like Emilia YODAS."
+        },
+    )
+    webdataset_urls: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "URL pattern for webdataset files (e.g., 'https://example.com/data-{000000..001000}.tar'). Used when use_webdataset=True."
+        },
+    )
+    webdataset_shuffle_buffer: int = field(
+        default=1000,
+        metadata={
+            "help": "Shuffle buffer size for webdataset streaming. Larger values improve randomness but use more memory."
+        },
     )
